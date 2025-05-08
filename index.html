@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Disperse on Tea Sepolia</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+</head>
+<body>
+  <h2>Disperse TEA</h2>
+  <textarea id="addresses" rows="5" cols="50" placeholder="0xabc... 0xdef..."></textarea><br/>
+  <textarea id="amounts" rows="5" cols="50" placeholder="0.01 0.02"></textarea><br/>
+  <button onclick="disperse()">Send</button>
+
+  <script>
+    const contractAddress = "PASTE_DEPLOYED_CONTRACT_ADDRESS";
+    const abi = [/* your ABI from Remix goes here */];
+
+    async function disperse() {
+      const web3 = new Web3(window.ethereum);
+      await window.ethereum.enable();
+
+      const contract = new web3.eth.Contract(abi, contractAddress);
+      const accounts = await web3.eth.getAccounts();
+
+      const addresses = document.getElementById("addresses").value.trim().split(/\s+/);
+      const amountsEth = document.getElementById("amounts").value.trim().split(/\s+/).map(Number);
+      const amountsWei = amountsEth.map(a => web3.utils.toWei(a.toString(), "ether"));
+      const totalWei = amountsWei.reduce((a, b) => a + BigInt(b), 0n);
+
+      await contract.methods.disperseEther(addresses, amountsWei).send({
+        from: accounts[0],
+        value: totalWei.toString()
+      });
+    }
+  </script>
+</body>
+</html>
