@@ -75,9 +75,9 @@
     }
     
     .connect-btn:hover {
-      background-color: transparent;
-      border-color: var(--white);
-      color: var(--white);
+      background-color: rgba(152, 255, 153, 0.1); /* Light green with opacity */
+      border-color: var(--light-green);
+      color: var(--light-green);
     }
     
     .connected-btn {
@@ -85,9 +85,15 @@
       color: var(--white);
       padding: 0.5rem 1rem;
       border-radius: 1rem;
+      border: none; /* Remove border */
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      cursor: pointer; /* Add pointer cursor */
+    }
+    
+    .connected-btn:hover {
+      background-color: rgba(78, 80, 112, 0.8); /* Slightly lighter than raisin-black */
     }
     
     main {
@@ -273,9 +279,11 @@
       cursor: pointer;
       font-size: 0.8rem;
       width: 100%;
+      transition: all 0.2s;
     }
     
     .disconnect-btn:hover {
+      background-color: rgba(255, 87, 87, 0.1);
       border-color: #FF5757;
       color: #FF5757;
     }
@@ -434,6 +442,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById("connectButton").addEventListener("click", connectWallet);
       document.getElementById("sendButton").addEventListener("click", disperse);
+      document.getElementById("disconnectButton").addEventListener("click", disconnectWallet);
       
       // Check if MetaMask or other provider is already connected
       checkConnection();
@@ -575,8 +584,16 @@
       connectBtn.innerHTML = `${userAccount.substring(0, 6)}...<span class="network-badge">TEA</span>`;
       connectBtn.className = "connected-btn";
       
+      // Show disconnect button
+      document.getElementById("disconnectButton").classList.remove("hidden");
+      
       // Enable send button
       document.getElementById("sendButton").disabled = false;
+    }
+    
+    // Disconnect wallet function
+    async function disconnectWallet() {
+      handleDisconnect();
     }
     
     // Handle disconnection
@@ -592,6 +609,9 @@
       const connectBtn = document.getElementById("connectButton");
       connectBtn.textContent = "Connect Wallet";
       connectBtn.className = "connect-btn";
+      
+      // Hide disconnect button
+      document.getElementById("disconnectButton").classList.add("hidden");
       
       setStatus('Wallet disconnected', 'pending');
       setTimeout(() => setStatus('', ''), 3000);
