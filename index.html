@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TEA Disperse</title>
   <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/@web3modal/standalone@2.4.1/dist/index.js"></script>
   <style>
     :root {
       /* Background colors (60%) */
@@ -237,96 +237,34 @@
       color: var(--periwinkle);
       font-size: 0.875rem;
     }
-    
-    /* For token selection */
-    .token-select {
+
+    .status {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      text-align: center;
       display: none;
     }
-    
-    .wallet-options {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      margin-top: 1rem;
+
+    .status.success {
+      background-color: rgba(37, 222, 78, 0.1);
+      color: var(--light-green);
+      border: 1px solid var(--malachite);
+      display: block;
     }
-    
-    .wallet-option {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 1rem;
-      background-color: var(--raisin-black);
-      border-radius: 0.5rem;
-      border: 1px solid transparent;
-      cursor: pointer;
-      transition: all 0.2s;
+
+    .status.error {
+      background-color: rgba(255, 87, 87, 0.1);
+      color: #FF5757;
+      border: 1px solid #FF5757;
+      display: block;
     }
-    
-    .wallet-option:hover {
-      border-color: var(--light-green);
-    }
-    
-    .wallet-icon {
-      width: 32px;
-      height: 32px;
-      object-fit: contain;
-    }
-    
-    .wallet-name {
-      flex: 1;
-      font-size: 1rem;
-      color: var(--white);
-    }
-    
-    .wallet-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.7);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 100;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-    }
-    
-    .wallet-modal.active {
-      opacity: 1;
-      pointer-events: all;
-    }
-    
-    .wallet-modal-content {
-      background-color: var(--bg-3);
-      width: 90%;
-      max-width: 400px;
-      border-radius: 1rem;
-      padding: 1.5rem;
-      position: relative;
-    }
-    
-    .close-modal {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      background: none;
-      border: none;
-      color: var(--periwinkle);
-      font-size: 1.5rem;
-      cursor: pointer;
-    }
-    
-    .close-modal:hover {
-      color: var(--white);
-    }
-    
-    .wallet-modal-title {
-      font-size: 1.25rem;
-      color: var(--white);
-      margin-bottom: 1rem;
+
+    .status.pending {
+      background-color: rgba(255, 193, 7, 0.1);
+      color: #FFC107;
+      border: 1px solid #FFC107;
+      display: block;
     }
   </style>
 </head>
@@ -344,13 +282,11 @@
       <span>TEA Disperse</span>
     </div>
     
-    <button id="connectButton" class="connect-btn">Connect</button>
+    <button id="connectButton" class="connect-btn">Connect Wallet</button>
   </nav>
   
   <main>
     <div class="card">
-
-      
       <div class="card-body">
         <div class="input-group">
           <div class="input-group-header">
@@ -370,10 +306,12 @@
         
         <div class="wallet-display" id="walletAddress">Not connected</div>
         
+        <div id="status" class="status"></div>
+        
         <div class="instructions">
           <h3>How to Disperse TEA</h3>
           <ol>
-            <li>Connect your wallet using the "Connect" button at the top.</li>
+            <li>Connect your wallet using the "Connect Wallet" button at the top.</li>
             <li>Enter the recipient addresses in the "Addresses" field (one per line or space-separated).</li>
             <li>Enter the corresponding TEA amounts in the "Amounts" field (one per line or space-separated).</li>
             <li>Ensure each address has a corresponding amount in the same order.</li>
@@ -391,146 +329,83 @@
       </div>
     </div>
   </main>
-
-  <div class="wallet-modal" id="walletModal">
-    <div class="wallet-modal-content">
-      <button class="close-modal" id="closeModal">×</button>
-      <h2 class="wallet-modal-title">Connect Wallet</h2>
-      <div class="wallet-options">
-        <div class="wallet-option" id="metamaskOption">
-          <img src="https://cdn.jsdelivr.net/gh/MetaMask/brand-resources@latest/SVG/metamask-fox.svg" alt="MetaMask" class="wallet-icon">
-          <span class="wallet-name">MetaMask</span>
-        </div>
-        <div class="wallet-option" id="walletConnectOption">
-          <img src="https://registry.walletconnect.com/api/v1/logo/md" alt="WalletConnect" class="wallet-icon">
-          <span class="wallet-name">WalletConnect</span>
-        </div>
-        <div class="wallet-option" id="coinbaseWalletOption">
-          <img src="https://www.coinbase.com/img/cbw/cbw-icon-blue.svg" alt="Coinbase Wallet" class="wallet-icon">
-          <span class="wallet-name">Coinbase Wallet</span>
-        </div>
-        <div class="wallet-option" id="injectedWalletOption">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="wallet-icon">
-            <rect width="24" height="24" rx="12" fill="#4E5070"/>
-            <path d="M7 10H17M7 14H17" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <span class="wallet-name">Injected Web3 Provider</span>
-        </div>
-      </div>
-    </div>
-  </div>
   
   <script>
     let web3;
     let userAccount;
     let contract;
     let provider;
+    let web3Modal;
     const contractAddress = "PASTE_DEPLOYED_CONTRACT_ADDRESS";
     // Replace this with your actual ABI
     const abi = []; // YOUR_ABI_HERE
     
-    // Show wallet modal
-    document.getElementById("connectButton").onclick = function() {
-      document.getElementById("walletModal").classList.add("active");
-    };
-    
-    // Close wallet modal
-    document.getElementById("closeModal").onclick = function() {
-      document.getElementById("walletModal").classList.remove("active");
-    };
-    
-    // MetaMask connection
-    document.getElementById("metamaskOption").onclick = async function() {
-      try {
-        if (window.ethereum && window.ethereum.isMetaMask) {
-          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-          handleAccountsConnected(accounts, 'metamask');
-        } else {
-          alert("MetaMask is not installed. Please install it to use this feature.");
-          window.open('https://metamask.io/download.html', '_blank');
+    // Initialize Web3Modal
+    async function initWeb3Modal() {
+      web3Modal = new window.Web3Modal.standalone.init({
+        projectId: "be1d2027f4bdc1efc2a79534fcc3175a", // Get from WalletConnect Dashboard
+        chains: [192837465], // Tea Sepolia chain ID
+        enableAnalytics: false,
+        themeMode: "dark",
+        themeVariables: {
+          "--w3m-accent-color": "#98FF99",
+          "--w3m-background-color": "#0A0711",
+          "--w3m-container-border-radius": "16px"
         }
-      } catch (error) {
-        console.error(error);
-        alert("Connection failed: " + error.message);
-      }
-    };
-    
-    // WalletConnect connection
-    document.getElementById("walletConnectOption").onclick = async function() {
-      provider = new WalletConnectProvider.default({
-        rpc: {
-          192837465: "https://rpc.testnet.tea.xyz" // Tea Sepolia RPC
-        },
-        chainId: 192837465
       });
-      
+    }
+    
+    // Connect wallet function
+    async function connectWallet() {
       try {
-        await provider.enable();
-        web3 = new Web3(provider);
-        const accounts = await web3.eth.getAccounts();
-        handleAccountsConnected(accounts, 'walletconnect');
+        // Reset status
+        setStatus('', '');
         
-        provider.on("disconnect", handleDisconnect);
-      } catch (error) {
-        console.error(error);
-        alert("Connection failed: " + error.message);
-      }
-    };
-    
-    // Coinbase Wallet connection
-    document.getElementById("coinbaseWalletOption").onclick = async function() {
-      alert("Coinbase Wallet integration requires additional library. Please use MetaMask or WalletConnect.");
-    };
-    
-    // Generic injected wallet connection
-    document.getElementById("injectedWalletOption").onclick = async function() {
-      try {
-        if (window.ethereum) {
-          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-          handleAccountsConnected(accounts, 'injected');
-        } else {
-          alert("No Web3 provider detected. Please install a Web3 wallet extension.");
+        // Create a provider
+        const walletProvider = await web3Modal.openModal();
+        
+        // Subscribe to account changes
+        walletProvider.on("accountsChanged", handleAccountsChanged);
+        walletProvider.on("chainChanged", () => window.location.reload());
+        walletProvider.on("disconnect", handleDisconnect);
+        
+        // Create Web3 instance
+        web3 = new Web3(walletProvider);
+        
+        // Get connected accounts
+        const accounts = await web3.eth.getAccounts();
+        
+        if (accounts.length === 0) {
+          throw new Error("No accounts found");
         }
+        
+        // Set user account
+        userAccount = accounts[0];
+        
+        // Update UI
+        document.getElementById("walletAddress").textContent = 
+          `Connected: ${userAccount.substring(0, 6)}...${userAccount.substring(userAccount.length - 4)}`;
+        
+        // Update connect button
+        const connectBtn = document.getElementById("connectButton");
+        connectBtn.textContent = `${userAccount.substring(0, 6)}...`;
+        connectBtn.className = "connected-btn";
+        
+        // Enable send button
+        document.getElementById("sendButton").disabled = false;
+        
+        // Initialize contract
+        contract = new web3.eth.Contract(abi, contractAddress);
+        
+        // Show success message
+        setStatus('Connected successfully!', 'success');
+        
+        // Store provider reference
+        provider = walletProvider;
+        
       } catch (error) {
-        console.error(error);
-        alert("Connection failed: " + error.message);
-      }
-    };
-    
-    // Handle connected accounts
-    async function handleAccountsConnected(accounts, walletType) {
-      if (accounts.length === 0) {
-        alert("Please connect to your wallet.");
-        return;
-      }
-      
-      userAccount = accounts[0];
-      document.getElementById("walletModal").classList.remove("active");
-      
-      // Update UI
-      document.getElementById("walletAddress").textContent = 
-        `Connected: ${userAccount.substring(0, 6)}...${userAccount.substring(userAccount.length - 4)}`;
-      document.getElementById("sendButton").disabled = false;
-      
-      // Update connect button
-      const connectBtn = document.getElementById("connectButton");
-      connectBtn.textContent = `${userAccount.substring(0, 6)}...`;
-      connectBtn.className = "connected-btn";
-      
-      // Initialize web3 if not already done (for non-WalletConnect providers)
-      if (!web3) {
-        if (walletType === 'injected' || walletType === 'metamask') {
-          web3 = new Web3(window.ethereum);
-        }
-      }
-      
-      // Initialize contract
-      contract = new web3.eth.Contract(abi, contractAddress);
-      
-      // Listen for account changes
-      if (window.ethereum) {
-        window.ethereum.on('accountsChanged', handleAccountsChanged);
-        window.ethereum.on('chainChanged', () => window.location.reload());
+        console.error("Connection error:", error);
+        setStatus(`Connection failed: ${error.message}`, 'error');
       }
     }
     
@@ -548,19 +423,41 @@
     
     // Handle disconnection
     function handleDisconnect() {
+      if (provider) {
+        provider.disconnect();
+        provider = null;
+      }
+      
       userAccount = null;
       web3 = null;
       contract = null;
+      
       document.getElementById("walletAddress").textContent = "Not connected";
       document.getElementById("sendButton").disabled = true;
-      document.getElementById("connectButton").textContent = "Connect";
-      document.getElementById("connectButton").className = "connect-btn";
+      
+      const connectBtn = document.getElementById("connectButton");
+      connectBtn.textContent = "Connect Wallet";
+      connectBtn.className = "connect-btn";
+      
+      setStatus('Wallet disconnected', 'pending');
+      setTimeout(() => setStatus('', ''), 3000);
+    }
+    
+    // Set status message
+    function setStatus(message, type) {
+      const statusElement = document.getElementById("status");
+      statusElement.textContent = message;
+      statusElement.className = "status";
+      
+      if (message) {
+        statusElement.classList.add(type);
+      }
     }
     
     // Disperse function
     async function disperse() {
       if (!userAccount || !web3 || !contract) {
-        alert("Please connect your wallet first.");
+        setStatus("Please connect your wallet first.", "error");
         return;
       }
       
@@ -568,33 +465,64 @@
       const amountsEth = document.getElementById("amounts").value.trim().split(/\s+/).map(Number);
       
       if (addresses.length === 0 || amountsEth.length === 0) {
-        alert("Please enter at least one address and amount.");
+        setStatus("Please enter at least one address and amount.", "error");
         return;
       }
       
       if (addresses.length !== amountsEth.length) {
-        alert("The number of addresses must match the number of amounts.");
+        setStatus("The number of addresses must match the number of amounts.", "error");
         return;
       }
       
+      // Validate addresses
+      for (const addr of addresses) {
+        if (!web3.utils.isAddress(addr)) {
+          setStatus(`Invalid address format: ${addr}`, "error");
+          return;
+        }
+      }
+      
+      // Validate amounts
+      for (const amount of amountsEth) {
+        if (isNaN(amount) || amount <= 0) {
+          setStatus("All amounts must be positive numbers.", "error");
+          return;
+        }
+      }
+      
       try {
+        setStatus("Preparing transaction...", "pending");
+        
         const amountsWei = amountsEth.map(a => web3.utils.toWei(a.toString(), "ether"));
         const totalWei = amountsWei.reduce((a, b) => BigInt(a) + BigInt(b), 0n);
         
+        setStatus("Waiting for wallet confirmation...", "pending");
+        
         // Request approval for the transaction
-        await contract.methods.disperseEther(addresses, amountsWei).send({
+        const tx = await contract.methods.disperseEther(addresses, amountsWei).send({
           from: userAccount,
           value: totalWei.toString()
         });
         
-        alert("Transaction sent successfully!");
+        setStatus(`Transaction sent successfully! TX Hash: ${tx.transactionHash.substring(0, 10)}...`, "success");
+        
       } catch (error) {
-        console.error(error);
-        alert("Error: " + error.message);
+        console.error("Transaction error:", error);
+        
+        if (error.code === 4001) {
+          setStatus("Transaction rejected by user.", "error");
+        } else {
+          setStatus(`Error: ${error.message}`, "error");
+        }
       }
     }
     
-    document.getElementById("sendButton").addEventListener("click", disperse);
+    // Initialize when DOM is loaded
+    document.addEventListener("DOMContentLoaded", async () => {
+      await initWeb3Modal();
+      document.getElementById("connectButton").addEventListener("click", connectWallet);
+      document.getElementById("sendButton").addEventListener("click", disperse);
+    });
   </script>
 </body>
 </html>
