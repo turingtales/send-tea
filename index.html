@@ -4,8 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TEA Disperse</title>
+  <!-- Web3 and Web3Modal dependencies -->
   <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
-  <script src="https://unpkg.com/@web3modal/standalone@2.4.1/dist/index.js"></script>
+  <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/evm-chains@0.2.0/dist/umd/index.min.js"></script>
   <style>
     :root {
       /* Background colors (60%) */
@@ -188,27 +191,6 @@
       color: var(--space-cadet);
     }
     
-    .swap-icon {
-      display: flex;
-      justify-content: center;
-      margin: -0.75rem 0;
-      position: relative;
-      z-index: 2;
-    }
-    
-    .swap-btn {
-      width: 40px;
-      height: 40px;
-      background-color: var(--raisin-black);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--light-green);
-      cursor: pointer;
-      border: 4px solid var(--bg-3);
-    }
-    
     .action-btn {
       width: 100%;
       padding: 1rem;
@@ -265,6 +247,27 @@
       color: #FFC107;
       border: 1px solid #FFC107;
       display: block;
+    }
+    
+    /* Web3Modal customization */
+    .web3modal-modal-card {
+      background-color: var(--bg-3) !important;
+    }
+    
+    .web3modal-provider-wrapper {
+      border: 1px solid var(--raisin-black) !important;
+    }
+    
+    .web3modal-provider-container {
+      background-color: var(--bg-4) !important;
+    }
+    
+    .web3modal-provider-name {
+      color: var(--white) !important;
+    }
+    
+    .web3modal-provider-description {
+      color: var(--periwinkle) !important;
     }
   </style>
 </head>
@@ -337,83 +340,45 @@
     let provider;
     let web3Modal;
     const contractAddress = "0xD393a85Ae473a0a551F97631a093c427443f0C6c";
+    const teaChainId = 192837465; // Tea Sepolia chain ID
+    
     // Replace this with your actual ABI
-    const abi = [
-	{
-		"inputs": [
-			{
-				"internalType": "address[]",
-				"name": "recipients",
-				"type": "address[]"
-			},
-			{
-				"internalType": "uint256[]",
-				"name": "amounts",
-				"type": "uint256[]"
-			}
-		],
-		"name": "disperseEther",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "sender",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "totalAmount",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "recipientCount",
-				"type": "uint256"
-			}
-		],
-		"name": "EtherDispersed",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "to",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "RefundSent",
-		"type": "event"
-	}
-]; // YOUR_ABI_HERE
+    const abi = []; // YOUR_ABI_HERE
+    
+    // Initialize Web3Modal on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+      initWeb3Modal();
+      document.getElementById("connectButton").addEventListener("click", connectWallet);
+      document.getElementById("sendButton").addEventListener("click", disperse);
+    });
     
     // Initialize Web3Modal
-    async function initWeb3Modal() {
-      web3Modal = new window.Web3Modal.standalone.init({
-        projectId: "be1d2027f4bdc1efc2a79534fcc3175a", // Get from WalletConnect Dashboard
-        chains: [192837465], // Tea Sepolia chain ID
-        enableAnalytics: false,
-        themeMode: "dark",
-        themeVariables: {
-          "--w3m-accent-color": "#98FF99",
-          "--w3m-background-color": "#0A0711",
-          "--w3m-container-border-radius": "16px"
+    function initWeb3Modal() {
+      // Define providers options
+      const providerOptions = {
+        walletconnect: {
+          package: WalletConnectProvider,
+          options: {
+            rpc: {
+              [teaChainId]: "https://rpc.testnet.tea.xyz" // Tea Sepolia RPC
+            },
+            chainId: teaChainId,
+            network: "tea"
+          }
+        }
+      };
+      
+      // Initialize web3modal
+      web3Modal = new Web3Modal.default({
+        cacheProvider: true, // optional
+        providerOptions, // required
+        disableInjectedProvider: false, // optional, allows MetaMask
+        theme: {
+          background: "#0E0D17",
+          main: "#FFFFFF",
+          secondary: "#B9C5E5",
+          border: "#1A1A2D",
+          hover: "#0A0711"
         }
       });
     }
@@ -424,77 +389,125 @@
         // Reset status
         setStatus('', '');
         
-        // Create a provider
-        const walletProvider = await web3Modal.openModal();
-        
-        // Subscribe to account changes
-        walletProvider.on("accountsChanged", handleAccountsChanged);
-        walletProvider.on("chainChanged", () => window.location.reload());
-        walletProvider.on("disconnect", handleDisconnect);
+        // Open modal and get provider
+        provider = await web3Modal.connect();
         
         // Create Web3 instance
-        web3 = new Web3(walletProvider);
+        web3 = new Web3(provider);
         
-        // Get connected accounts
+        // Subscribe to provider events
+        setupProviderEvents(provider);
+        
+        // Get chain ID
+        const chainId = await web3.eth.getChainId();
+        
+        // Get accounts
         const accounts = await web3.eth.getAccounts();
+        handleAccountsChanged(accounts);
         
-        if (accounts.length === 0) {
-          throw new Error("No accounts found");
+        // Check if we're on the right network
+        if (chainId !== teaChainId) {
+          setStatus(`Please connect to TEA Network (Chain ID: ${teaChainId})`, 'error');
+          
+          // Try to switch network (MetaMask only)
+          if (provider.isMetaMask) {
+            try {
+              await provider.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: `0x${teaChainId.toString(16)}` }]
+              });
+            } catch (switchError) {
+              // This error code indicates that the chain has not been added to MetaMask
+              if (switchError.code === 4902) {
+                try {
+                  await provider.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                      chainId: `0x${teaChainId.toString(16)}`,
+                      chainName: 'TEA Sepolia',
+                      nativeCurrency: {
+                        name: 'TEA',
+                        symbol: 'TEA',
+                        decimals: 18
+                      },
+                      rpcUrls: ['https://rpc.testnet.tea.xyz'],
+                      blockExplorerUrls: ['https://explorer.testnet.tea.xyz']
+                    }]
+                  });
+                } catch (addError) {
+                  console.error('Failed to add network:', addError);
+                }
+              }
+            }
+          }
+        } else {
+          // Initialize contract if we're on the right network
+          contract = new web3.eth.Contract(abi, contractAddress);
+          setStatus('Connected successfully!', 'success');
         }
-        
-        // Set user account
-        userAccount = accounts[0];
-        
-        // Update UI
-        document.getElementById("walletAddress").textContent = 
-          `Connected: ${userAccount.substring(0, 6)}...${userAccount.substring(userAccount.length - 4)}`;
-        
-        // Update connect button
-        const connectBtn = document.getElementById("connectButton");
-        connectBtn.textContent = `${userAccount.substring(0, 6)}...`;
-        connectBtn.className = "connected-btn";
-        
-        // Enable send button
-        document.getElementById("sendButton").disabled = false;
-        
-        // Initialize contract
-        contract = new web3.eth.Contract(abi, contractAddress);
-        
-        // Show success message
-        setStatus('Connected successfully!', 'success');
-        
-        // Store provider reference
-        provider = walletProvider;
-        
       } catch (error) {
         console.error("Connection error:", error);
         setStatus(`Connection failed: ${error.message}`, 'error');
       }
     }
     
+    // Setup provider events
+    function setupProviderEvents(provider) {
+      // Subscribe to accounts change
+      provider.on("accountsChanged", handleAccountsChanged);
+      
+      // Subscribe to chainId change
+      provider.on("chainChanged", (chainId) => {
+        console.log("Chain changed:", chainId);
+        window.location.reload();
+      });
+      
+      // Subscribe to provider connection
+      provider.on("connect", (info) => {
+        console.log("Provider connected:", info);
+      });
+      
+      // Subscribe to provider disconnection
+      provider.on("disconnect", (error) => {
+        console.log("Provider disconnected:", error);
+        handleDisconnect();
+      });
+    }
+    
     // Handle account changes
     function handleAccountsChanged(accounts) {
       if (accounts.length === 0) {
         handleDisconnect();
-      } else {
-        userAccount = accounts[0];
-        document.getElementById("walletAddress").textContent = 
-          `Connected: ${userAccount.substring(0, 6)}...${userAccount.substring(userAccount.length - 4)}`;
-        document.getElementById("connectButton").textContent = `${userAccount.substring(0, 6)}...`;
+        return;
       }
+      
+      userAccount = accounts[0];
+      
+      // Update UI
+      document.getElementById("walletAddress").textContent = 
+        `Connected: ${userAccount.substring(0, 6)}...${userAccount.substring(userAccount.length - 4)}`;
+      
+      // Update connect button
+      const connectBtn = document.getElementById("connectButton");
+      connectBtn.textContent = `${userAccount.substring(0, 6)}...`;
+      connectBtn.className = "connected-btn";
+      
+      // Enable send button
+      document.getElementById("sendButton").disabled = false;
     }
     
     // Handle disconnection
     function handleDisconnect() {
-      if (provider) {
-        provider.disconnect();
-        provider = null;
+      if (web3Modal) {
+        web3Modal.clearCachedProvider();
       }
       
       userAccount = null;
       web3 = null;
       contract = null;
+      provider = null;
       
+      // Update UI
       document.getElementById("walletAddress").textContent = "Not connected";
       document.getElementById("sendButton").disabled = true;
       
@@ -517,6 +530,48 @@
       }
     }
     
+    // Parse input addresses and amounts
+    function parseInputs() {
+      // Get input values and normalize
+      const addressesInput = document.getElementById("addresses").value.trim();
+      const amountsInput = document.getElementById("amounts").value.trim();
+      
+      // Split by any whitespace (spaces, tabs, newlines)
+      const addresses = addressesInput.split(/\s+/).filter(addr => addr !== '');
+      const amountsStr = amountsInput.split(/\s+/).filter(amt => amt !== '');
+      
+      if (addresses.length === 0) {
+        throw new Error("Please enter at least one address");
+      }
+      
+      if (amountsStr.length === 0) {
+        throw new Error("Please enter at least one amount");
+      }
+      
+      if (addresses.length !== amountsStr.length) {
+        throw new Error(`Number of addresses (${addresses.length}) doesn't match number of amounts (${amountsStr.length})`);
+      }
+      
+      // Validate addresses
+      for (const addr of addresses) {
+        if (!web3.utils.isAddress(addr)) {
+          throw new Error(`Invalid address format: ${addr}`);
+        }
+      }
+      
+      // Convert amounts to numbers and validate
+      const amounts = [];
+      for (let i = 0; i < amountsStr.length; i++) {
+        const amount = Number(amountsStr[i]);
+        if (isNaN(amount) || amount <= 0) {
+          throw new Error(`Invalid amount at position ${i+1}: ${amountsStr[i]}`);
+        }
+        amounts.push(amount);
+      }
+      
+      return { addresses, amounts };
+    }
+    
     // Disperse function
     async function disperse() {
       if (!userAccount || !web3 || !contract) {
@@ -524,42 +579,17 @@
         return;
       }
       
-      const addresses = document.getElementById("addresses").value.trim().split(/\s+/);
-      const amountsEth = document.getElementById("amounts").value.trim().split(/\s+/).map(Number);
-      
-      if (addresses.length === 0 || amountsEth.length === 0) {
-        setStatus("Please enter at least one address and amount.", "error");
-        return;
-      }
-      
-      if (addresses.length !== amountsEth.length) {
-        setStatus("The number of addresses must match the number of amounts.", "error");
-        return;
-      }
-      
-      // Validate addresses
-      for (const addr of addresses) {
-        if (!web3.utils.isAddress(addr)) {
-          setStatus(`Invalid address format: ${addr}`, "error");
-          return;
-        }
-      }
-      
-      // Validate amounts
-      for (const amount of amountsEth) {
-        if (isNaN(amount) || amount <= 0) {
-          setStatus("All amounts must be positive numbers.", "error");
-          return;
-        }
-      }
-      
       try {
+        const { addresses, amounts } = parseInputs();
         setStatus("Preparing transaction...", "pending");
         
-        const amountsWei = amountsEth.map(a => web3.utils.toWei(a.toString(), "ether"));
+        // Convert ETH amounts to Wei
+        const amountsWei = amounts.map(amount => web3.utils.toWei(amount.toString(), "ether"));
         const totalWei = amountsWei.reduce((a, b) => BigInt(a) + BigInt(b), 0n);
         
-        setStatus("Waiting for wallet confirmation...", "pending");
+        // Display summary before sending
+        const totalEth = web3.utils.fromWei(totalWei.toString(), "ether");
+        setStatus(`Preparing to send ${totalEth} TEA to ${addresses.length} addresses. Waiting for wallet confirmation...`, "pending");
         
         // Request approval for the transaction
         const tx = await contract.methods.disperseEther(addresses, amountsWei).send({
@@ -567,6 +597,7 @@
           value: totalWei.toString()
         });
         
+        // Show success with transaction hash
         setStatus(`Transaction sent successfully! TX Hash: ${tx.transactionHash.substring(0, 10)}...`, "success");
         
       } catch (error) {
@@ -579,13 +610,6 @@
         }
       }
     }
-    
-    // Initialize when DOM is loaded
-    document.addEventListener("DOMContentLoaded", async () => {
-      await initWeb3Modal();
-      document.getElementById("connectButton").addEventListener("click", connectWallet);
-      document.getElementById("sendButton").addEventListener("click", disperse);
-    });
   </script>
 </body>
 </html>
