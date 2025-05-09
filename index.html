@@ -418,16 +418,7 @@
     function initWeb3Modal() {
       // Define providers options
       const providerOptions = {
-        walletconnect: {
-          package: WalletConnectProvider,
-          options: {
-            rpc: {
-              [teaChainId]: "https://tea-sepolia.g.alchemy.com/public" // Updated to correct Tea Sepolia RPC
-            },
-            chainId: teaChainId,
-            network: "tea"
-          }
-        }
+         // WalletConnect option removed
       };
       
       // Initialize web3modal
