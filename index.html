@@ -322,73 +322,11 @@
     let web3;
     let userAccount;
     let contract;
-    const contractAddress = "0xD393a85Ae473a0a551F97631a093c427443f0C6c";
-    const teaChainId = 192837465; // Tea Sepolia chain ID
+    const contractAddress = "PASTE_DEPLOYED_CONTRACT_ADDRESS";
+    const teaChainId = 10218; // Tea Sepolia chain ID
     
     // Replace this with your actual ABI
-    const abi = [	{
-		"inputs": [
-			{
-				"internalType": "address[]",
-				"name": "recipients",
-				"type": "address[]"
-			},
-			{
-				"internalType": "uint256[]",
-				"name": "amounts",
-				"type": "uint256[]"
-			}
-		],
-		"name": "disperseEther",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "sender",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "totalAmount",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "recipientCount",
-				"type": "uint256"
-			}
-		],
-		"name": "EtherDispersed",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "to",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "RefundSent",
-		"type": "event"
-	}
-]; // YOUR_ABI_HERE
+    const abi = []; // YOUR_ABI_HERE
     
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', () => {
@@ -477,14 +415,14 @@
                 method: 'wallet_addEthereumChain',
                 params: [{
                   chainId: `0x${teaChainId.toString(16)}`,
-                  chainName: 'TEA Sepolia',
+                  chainName: 'Tea Sepolia',
                   nativeCurrency: {
                     name: 'TEA',
                     symbol: 'TEA',
                     decimals: 18
                   },
-                  rpcUrls: ['https://rpc.testnet.tea.xyz'],
-                  blockExplorerUrls: ['https://explorer.testnet.tea.xyz']
+                  rpcUrls: ['https://tea-sepolia.g.alchemy.com/public'],
+                  blockExplorerUrls: ['https://sepolia.tea.xyz']
                 }]
               });
             } catch (addError) {
