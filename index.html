@@ -253,7 +253,7 @@
       border: 1px solid #FF5757;
     }
 
-    .status.pending { /* Renamed from loading for consistency */
+    .status.pending { 
       background-color: rgba(185, 197, 229, 0.1);
       color: var(--periwinkle);
       border: 1px solid var(--periwinkle);
@@ -261,18 +261,25 @@
     
     .spinner {
       display: inline-block;
-      width: 1rem; /* Adjusted size */
-      height: 1rem; /* Adjusted size */
+      width: 1rem; 
+      height: 1rem; 
       border: 2px solid rgba(0, 0, 0, 0.3); /* Spinner color for light button */
       border-radius: 50%;
       border-top-color: var(--bg-1); /* Spinner top color for light button */
       animation: spin 1s ease-in-out infinite;
-      margin-right: 0.5rem; /* Space between spinner and text */
+    }
+    
+    /* Spinner specifically for the action button (send button) */
+    .action-btn .spinner {
+        margin-left: 0.5rem; /* Space it out if button text is also visible */
     }
 
-    .status .spinner { /* Spinner specific for status message */
-        border: 2px solid rgba(255, 255, 255, 0.3);
+    /* Spinner specifically for the status message area */
+    .status .spinner { 
+        border: 2px solid rgba(255, 255, 255, 0.3); /* Lighter spinner for dark status bg */
         border-top-color: var(--white);
+        margin-right: 0.5rem; /* Space between spinner and status text */
+        vertical-align: middle;
     }
     
     @keyframes spin {
@@ -311,9 +318,8 @@
       margin-left: 0.5rem;
     }
 
-    /* Style for clickable transaction hash */
     .status a {
-        color: var(--light-green); /* Or your preferred link color */
+        color: var(--light-green); 
         text-decoration: underline;
     }
     .status a:hover {
@@ -358,11 +364,14 @@
         
         <button id="sendButton" class="action-btn" disabled>
           <span class="button-text">Disperse TEA</span>
-          <span class="spinner hidden"></span> </button>
+          <span class="spinner hidden"></span> 
+        </button>
         
         <div class="wallet-display" id="walletAddress">Not connected</div>
         
-        <div id="status" class="status"></div> <button id="disconnectButton" class="disconnect-btn hidden">Disconnect Wallet</button>
+        <div id="status" class="status"></div> 
+        
+        <button id="disconnectButton" class="disconnect-btn hidden">Disconnect Wallet</button>
         
         <div class="instructions">
           <h3>How to Disperse TEA</h3>
@@ -390,79 +399,14 @@
     let web3;
     let userAccount;
     let contract;
-    const contractAddress = "0xD393a85Ae473a0a551F97631a093c427443f0C6c"; // Make sure this is correct
+    const contractAddress = "0xD393a85Ae473a0a551F97631a093c427443f0C6c"; 
     const teaChainId = 10218; // Tea Sepolia chain ID
-    const teaBlockExplorerTxUrl = "https://sepolia.tea.xyz/tx/"; // TEA Sepolia Explorer URL for transactions
+    const teaBlockExplorerTxUrl = "https://sepolia.tea.xyz/tx/"; 
 
-    // Timer for auto-hiding notifications
     let statusClearTimer = null; 
     
-    // Replace this with your actual ABI
-    const abi = [	{
-		"inputs": [
-			{
-				"internalType": "address[]",
-				"name": "recipients",
-				"type": "address[]"
-			},
-			{
-				"internalType": "uint256[]",
-				"name": "amounts",
-				"type": "uint256[]"
-			}
-		],
-		"name": "disperseEther",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "sender",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "totalAmount",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "recipientCount",
-				"type": "uint256"
-			}
-		],
-		"name": "EtherDispersed",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "to",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "RefundSent",
-		"type": "event"
-	}
-]; 
+    const abi = [{"inputs":[{"internalType":"address[]","name":"recipients","type":"address[]"},{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"name":"disperseEther","outputs":[],"stateMutability":"payable","type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"totalAmount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"recipientCount","type":"uint256"}],"name":"EtherDispersed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"RefundSent","type":"event"}]; 
     
-    // Initialize on page load
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById("connectButton").addEventListener("click", connectWallet);
       document.getElementById("sendButton").addEventListener("click", disperse);
@@ -473,27 +417,36 @@
     async function checkConnection() {
       if (window.ethereum) {
         try {
-          web3 = new Web3(window.ethereum);
+          if (!web3) { // Only initialize if web3 is not already set
+            web3 = new Web3(window.ethereum);
+          }
           const accounts = await web3.eth.getAccounts();
           if (accounts.length > 0) {
             const chainId = await web3.eth.getChainId();
             await initializeWeb3WithAccounts(accounts, chainId);
+          } else {
+            handleDisconnect(false); // No accounts found, ensure UI reflects disconnected state silently
           }
         } catch (error) {
-          console.log("No pre-existing connection found or error:", error);
+          console.log("No pre-existing connection found or error during checkConnection:", error);
+          handleDisconnect(false); // Reset to disconnected state silently on error
         }
+      } else {
+         handleDisconnect(false); // No ethereum provider, ensure UI is disconnected
       }
     }
     
     async function connectWallet() {
-      setStatus('', ''); // Clear previous status
+      setStatus('', ''); 
       if (!window.ethereum) {
-        setStatus('Please install MetaMask or another Web3 wallet.', 'error', false); // Don't auto-hide this
+        setStatus('Please install MetaMask or another Web3 wallet.', 'error', false); 
         return;
       }
       try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        web3 = new Web3(window.ethereum);
+        if (!web3) { // Initialize web3 if it's null (e.g., after a disconnect)
+            web3 = new Web3(window.ethereum);
+        }
         const chainId = await web3.eth.getChainId();
         await initializeWeb3WithAccounts(accounts, chainId);
         setupProviderEvents();
@@ -504,9 +457,9 @@
     }
     
     async function initializeWeb3WithAccounts(accounts, chainId) {
-      handleAccountsChanged(accounts);
-      if (Number(chainId) !== teaChainId) { // Ensure chainId is compared as a number
-        setStatus(`Please switch to TEA Network (Chain ID: ${teaChainId}). Click to add/switch.`, 'error', false); // Don't auto-hide
+      handleAccountsChanged(accounts); 
+      if (Number(chainId) !== teaChainId) { 
+        setStatus(`Please switch to TEA Network (Chain ID: ${teaChainId}). Click to add/switch.`, 'error', false); 
          document.getElementById('status').addEventListener('click', async () => {
             try {
               await window.ethereum.request({
@@ -522,7 +475,7 @@
                       chainId: `0x${teaChainId.toString(16)}`,
                       chainName: 'Tea Sepolia',
                       nativeCurrency: { name: 'TEA', symbol: 'TEA', decimals: 18 },
-                      rpcUrls: ['https://tea-sepolia.g.alchemy.com/public'], // Ensure this RPC is correct and active
+                      rpcUrls: ['https://tea-sepolia.g.alchemy.com/public'], 
                       blockExplorerUrls: [teaBlockExplorerTxUrl.substring(0, teaBlockExplorerTxUrl.lastIndexOf('/tx/'))]
                     }]
                   });
@@ -534,34 +487,46 @@
                 setStatus(`Failed to switch network: ${switchError.message}`, 'error');
               }
             }
-        }, { once: true }); // Remove listener after click
+        }, { once: true }); 
       } else {
-        contract = new web3.eth.Contract(abi, contractAddress);
-        setStatus('Connected successfully to TEA Network!', 'success');
+        if (userAccount && web3) { // Ensure userAccount and web3 are available
+            contract = new web3.eth.Contract(abi, contractAddress);
+            setStatus('Connected successfully to TEA Network!', 'success');
+            document.getElementById("sendButton").disabled = false; // Enable send button only if correctly connected
+        } else {
+            // This state implies an issue, ensure disconnect state
+            handleDisconnect(false); 
+            if (!userAccount) console.error("Initialize error: User account not found after accounts changed.");
+            if (!web3) console.error("Initialize error: Web3 instance not found.");
+        }
       }
     }
     
     function setupProviderEvents() {
       if (window.ethereum) {
+        window.ethereum.removeAllListeners("accountsChanged"); // Prevent duplicate listeners
+        window.ethereum.removeAllListeners("chainChanged");
+        window.ethereum.removeAllListeners("disconnect");
+
         window.ethereum.on("accountsChanged", handleAccountsChanged);
-        window.ethereum.on("chainChanged", (newChainId) => { // Get the new chainId
-            console.log("Network changed to:", newChainId);
-            if (Number(newChainId) !== teaChainId) {
-                 handleDisconnect(); // Disconnect if not on TEA network
-                 setStatus(`Switched to wrong network. Please switch back to TEA Network (Chain ID: ${teaChainId}).`, 'error', false);
-            } else {
-                window.location.reload(); // Reload if switched to the correct network or for other changes
-            }
+        window.ethereum.on("chainChanged", (newChainIdHex) => { 
+            console.log("Network changed to (hex):", newChainIdHex, "Decimal:", parseInt(newChainIdHex));
+            window.location.reload(); // Reload to re-evaluate connection and network state
         });
-        window.ethereum.on("disconnect", () => handleDisconnect());
+        window.ethereum.on("disconnect", (error) => { // EIP-1193 disconnect event
+            console.log("Wallet provider emitted disconnect event.", error);
+            handleDisconnect(); 
+        });
       }
     }
     
     function handleAccountsChanged(accounts) {
       if (accounts.length === 0) {
-        handleDisconnect();
+        console.log("accountsChanged event with 0 accounts, handling disconnect.");
+        handleDisconnect(); 
         return;
       }
+      
       userAccount = accounts[0];
       document.getElementById("walletAddress").textContent = 
         `Connected: ${userAccount.substring(0, 6)}...${userAccount.substring(userAccount.length - 4)}`;
@@ -569,92 +534,98 @@
       connectBtn.innerHTML = `${userAccount.substring(0, 6)}...<span class="network-badge">TEA</span>`;
       connectBtn.className = "connected-btn";
       document.getElementById("disconnectButton").classList.remove("hidden");
-      document.getElementById("sendButton").disabled = false;
+      document.getElementById("sendButton").disabled = true; // Disable send button until network is verified
 
-      // Check network again upon account change
       if (web3) {
           web3.eth.getChainId().then(chainId => {
               if (Number(chainId) !== teaChainId) {
                   setStatus(`Wallet connected, but please switch to TEA Network (Chain ID: ${teaChainId}).`, 'error', false);
-                  document.getElementById("sendButton").disabled = true; // Disable send if on wrong network
+                  document.getElementById("sendButton").disabled = true; 
               } else {
-                  if (document.getElementById("status").classList.contains('error')) { // Clear network error if any
+                  // Clear network error if it was previously shown for this reason
+                  const statusElement = document.getElementById("status");
+                  if (statusElement.classList.contains('error') && statusElement.textContent.includes("TEA Network")) {
                     setStatus('Connected successfully to TEA Network!', 'success');
                   }
-                  contract = new web3.eth.Contract(abi, contractAddress); // Re-init contract
+                  contract = new web3.eth.Contract(abi, contractAddress); 
+                  document.getElementById("sendButton").disabled = false; 
               }
           });
+      } else {
+          // If web3 is not initialized here, something is wrong.
+          console.error("handleAccountsChanged: web3 is not initialized.");
+          handleDisconnect(); // Fallback to disconnected state
       }
     }
-    
-    function handleDisconnect() {
-      userAccount = null;
-      // web3 = null; // Keep web3 instance if you want to allow re-connection without full page reload
-      contract = null;
-      document.getElementById("walletAddress").textContent = "Not connected";
-      document.getElementById("sendButton").disabled = true;
-      const connectBtn = document.getElementById("connectButton");
-      connectBtn.textContent = "Connect Wallet";
-      connectBtn.className = "connect-btn";
-      document.getElementById("disconnectButton").classList.add("hidden");
-      setStatus('Wallet disconnected.', 'pending'); // Use 'pending' or a neutral class
+
+    async function disconnectWallet() {
+      console.log("Disconnect button clicked by user.");
+      handleDisconnect(); 
     }
     
-    // Set status message with auto-hide option
+    function handleDisconnect(showMessage = true) {
+      userAccount = null;
+      web3 = null;        
+      contract = null;
+      
+      document.getElementById("walletAddress").textContent = "Not connected";
+      document.getElementById("sendButton").disabled = true;
+      
+      const connectBtn = document.getElementById("connectButton");
+      connectBtn.textContent = "Connect Wallet";
+      connectBtn.className = "connect-btn"; 
+      
+      document.getElementById("disconnectButton").classList.add("hidden");
+      
+      if (showMessage) {
+        setStatus('Wallet disconnected.', 'pending'); 
+      }
+      console.log("dApp state reset to disconnected.");
+    }
+    
     function setStatus(message, type, autoHide = true, duration = 5000) {
       const statusElement = document.getElementById("status");
-      
-      // Clear any existing timer
       if (statusClearTimer) {
         clearTimeout(statusClearTimer);
         statusClearTimer = null;
       }
-
-      // Sanitize message to prevent XSS if it contains user input directly (though here it's mostly dev-controlled)
-      // For transaction hash, we will build the anchor tag safely
-      statusElement.innerHTML = ''; // Clear previous content
-
+      statusElement.innerHTML = ''; 
       if (message) {
-        // If the message is a "pending" type and includes a spinner requirement:
-        if (type === 'pending' && message.toLowerCase().includes('preparing') || message.toLowerCase().includes('waiting')) {
+        if (type === 'pending' && (message.toLowerCase().includes('preparing') || message.toLowerCase().includes('waiting'))) {
              const spinner = document.createElement('span');
              spinner.className = 'spinner';
              statusElement.appendChild(spinner);
         }
-        
-        const textNode = document.createTextNode(message.replace(/TX Hash: .*/, '')); // Remove old hash text if any before adding new
-        statusElement.appendChild(textNode);
+        // Create text node separately to avoid innerHTML for dynamic content if message could be user-influenced
+        const textSpan = document.createElement('span');
+        textSpan.textContent = message.replace(/TX Hash: .*/, ''); // Remove TX Hash part if we are to add a link later
+        statusElement.appendChild(textSpan);
 
-        statusElement.className = "status"; // Reset classes
+        statusElement.className = "status"; 
         statusElement.classList.add(type);
-        statusElement.classList.add("show"); // Add 'show' class to trigger fade-in
+        statusElement.classList.add("show"); 
 
         if (autoHide) {
           statusClearTimer = setTimeout(() => {
             statusElement.classList.remove("show");
-            // Optionally, fully hide after fade out transition completes
-            // setTimeout(() => { if (!statusElement.classList.contains("show")) statusElement.style.display = 'none'; }, 500); // 500ms matches CSS transition
           }, duration);
         }
       } else {
         statusElement.classList.remove("show");
-        // setTimeout(() => { if (!statusElement.classList.contains("show")) statusElement.style.display = 'none'; }, 500);
       }
     }
 
-    // Function to show loading state on the button
     function showButtonLoading(isLoading) {
         const sendButton = document.getElementById("sendButton");
         const buttonText = sendButton.querySelector(".button-text");
         const spinner = sendButton.querySelector(".spinner");
-
         if (isLoading) {
             sendButton.disabled = true;
-            buttonText.textContent = "Processing..."; // Change text
+            buttonText.textContent = "Processing..."; 
             spinner.classList.remove("hidden");
         } else {
             sendButton.disabled = false;
-            buttonText.textContent = "Disperse TEA"; // Restore text
+            buttonText.textContent = "Disperse TEA"; 
             spinner.classList.add("hidden");
         }
     }
@@ -664,13 +635,17 @@
       const amountsInput = document.getElementById("amounts").value.trim();
       const addresses = addressesInput.split(/\s+/).filter(addr => addr !== '');
       const amountsStr = amountsInput.split(/\s+/).filter(amt => amt !== '');
+
       if (addresses.length === 0) throw new Error("Please enter at least one address.");
       if (amountsStr.length === 0) throw new Error("Please enter at least one amount.");
       if (addresses.length !== amountsStr.length) throw new Error(`Addresses (${addresses.length}) and amounts (${amountsStr.length}) count mismatch.`);
+      
+      if (!web3 || !web3.utils) throw new Error("Web3 is not initialized properly. Please connect your wallet.");
+
       addresses.forEach(addr => { if (!web3.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`); });
-      const amounts = amountsStr.map((amt, i) => {
-        const amount = Number(amt);
-        if (isNaN(amount) || amount <= 0) throw new Error(`Invalid amount: ${amt} for address ${addresses[i]}`);
+      const amounts = amountsStr.map((amtStr, i) => {
+        const amount = Number(amtStr);
+        if (isNaN(amount) || amount <= 0) throw new Error(`Invalid amount: '${amtStr}' for address ${addresses[i] || `at position ${i+1}` }`);
         return amount;
       });
       return { addresses, amounts };
@@ -681,21 +656,19 @@
         setStatus("Please connect your wallet and ensure you are on the TEA Network.", "error");
         return;
       }
-       // Check network again before sending
-      const currentChainId = await web3.eth.getChainId();
-      if (Number(currentChainId) !== teaChainId) {
-          setStatus(`Wrong network. Please switch to TEA Network (Chain ID: ${teaChainId}) before dispersing.`, 'error', false);
-          return;
-      }
-
-      showButtonLoading(true); // Show loading state on button
-      setStatus("Preparing transaction...", "pending", false); // Non-auto-hiding initial status
-
       try {
-        const { addresses, amounts } = parseInputs();
+        const currentChainId = await web3.eth.getChainId();
+        if (Number(currentChainId) !== teaChainId) {
+            setStatus(`Wrong network. Please switch to TEA Network (Chain ID: ${teaChainId}) before dispersing.`, 'error', false);
+            return;
+        }
+
+        showButtonLoading(true); 
+        setStatus("Preparing transaction...", "pending", false); 
+        const { addresses, amounts } = parseInputs(); // Moved parseInputs here to catch errors before wallet interaction
         
         const amountsWei = amounts.map(amount => web3.utils.toWei(amount.toString(), "ether"));
-        const totalWei = amountsWei.reduce((a, b) => BigInt(a) + BigInt(b), 0n);
+        const totalWei = amountsWei.reduce((a, b) => BigInt(a) + BigInt(b), 0n); // Use BigInt for reduction
         const totalEth = web3.utils.fromWei(totalWei.toString(), "ether");
 
         setStatus(`Sending ${totalEth} TEA to ${addresses.length} addresses. Confirm in wallet...`, "pending", false);
@@ -705,7 +678,6 @@
           value: totalWei.toString()
         });
         
-        // Create clickable transaction hash
         const statusElement = document.getElementById("status");
         statusElement.innerHTML = ''; // Clear previous content (like spinner)
         
@@ -716,33 +688,36 @@
         const txLink = document.createElement('a');
         txLink.href = `${teaBlockExplorerTxUrl}${tx.transactionHash}`;
         txLink.textContent = `${tx.transactionHash.substring(0, 10)}...${tx.transactionHash.substring(tx.transactionHash.length - 8)}`;
-        txLink.target = "_blank"; // Open in new tab
+        txLink.target = "_blank"; 
         txLink.rel = "noopener noreferrer";
         statusElement.appendChild(txLink);
         
-        statusElement.className = "status success show"; // Apply styles and show
+        statusElement.className = "status success show"; 
         
-        // Auto-hide after a longer period for success with link
         if (statusClearTimer) clearTimeout(statusClearTimer);
         statusClearTimer = setTimeout(() => {
             statusElement.classList.remove("show");
-        }, 15000); // 15 seconds for success message
+        }, 15000); 
 
-        document.getElementById("addresses").value = ''; // Clear inputs on success
-        document.getElementById("amounts").value = ''; // Clear inputs on success
+        document.getElementById("addresses").value = ''; 
+        document.getElementById("amounts").value = ''; 
         
       } catch (error) {
-        console.error("Transaction error:", error);
-        let errorMessage = `Error: ${error.message}`;
-        if (error.code === 4001) { // User rejected transaction
-          errorMessage = "Transaction rejected by user.";
-        } else if (error.message.includes("insufficient funds")) {
-          errorMessage = "Error: Insufficient funds for transaction.";
+        console.error("Disperse error:", error); // Log the full error object
+        let errorMessage = "An error occurred during the transaction."; // Default message
+        if (error.message) { // Prefer error.message if available
+            errorMessage = error.message;
         }
-        // Set error message, auto-hiding
-        setStatus(errorMessage, "error", true, 7000); // Auto-hide error after 7 seconds
+        if (error.code === 4001) { 
+          errorMessage = "Transaction rejected by user.";
+        } else if (typeof error.message === 'string' && error.message.toLowerCase().includes("insufficient funds")) {
+          errorMessage = "Error: Insufficient funds for transaction.";
+        } else if (typeof error.message === 'string' && error.message.startsWith("Addresses (")) { // Catch specific parse error
+            errorMessage = error.message; // Use the message from parseInputs
+        }
+        setStatus(errorMessage, "error", true, 7000); 
       } finally {
-        showButtonLoading(false); // Hide loading state on button
+        showButtonLoading(false); 
       }
     }
   </script>
