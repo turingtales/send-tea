@@ -4,11 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TEA Disperse</title>
-  <!-- Web3 and Web3Modal dependencies -->
+  <!-- Web3 dependency -->
   <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
-  <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-  <script src="https://unpkg.com/evm-chains@0.2.0/dist/umd/index.min.js"></script>
   <style>
     :root {
       /* Background colors (60%) */
@@ -249,25 +246,13 @@
       display: block;
     }
     
-    /* Web3Modal customization */
-    .web3modal-modal-card {
-      background-color: var(--bg-3) !important;
-    }
-    
-    .web3modal-provider-wrapper {
-      border: 1px solid var(--raisin-black) !important;
-    }
-    
-    .web3modal-provider-container {
-      background-color: var(--bg-4) !important;
-    }
-    
-    .web3modal-provider-name {
-      color: var(--white) !important;
-    }
-    
-    .web3modal-provider-description {
-      color: var(--periwinkle) !important;
+    .network-badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.5rem;
+      font-size: 0.75rem;
+      background-color: var(--raisin-black);
+      color: var(--light-green);
+      margin-left: 0.5rem;
     }
   </style>
 </head>
@@ -337,141 +322,199 @@
     let web3;
     let userAccount;
     let contract;
-    let provider;
-    let web3Modal;
     const contractAddress = "0xD393a85Ae473a0a551F97631a093c427443f0C6c";
     const teaChainId = 192837465; // Tea Sepolia chain ID
     
     // Replace this with your actual ABI
-    const abi = []; // YOUR_ABI_HERE
+    const abi = [	{
+		"inputs": [
+			{
+				"internalType": "address[]",
+				"name": "recipients",
+				"type": "address[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "amounts",
+				"type": "uint256[]"
+			}
+		],
+		"name": "disperseEther",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "totalAmount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "recipientCount",
+				"type": "uint256"
+			}
+		],
+		"name": "EtherDispersed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "RefundSent",
+		"type": "event"
+	}
+]; // YOUR_ABI_HERE
     
-    // Initialize Web3Modal on page load
-    document.addEventListener('DOMContentLoaded', async () => {
-      initWeb3Modal();
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
       document.getElementById("connectButton").addEventListener("click", connectWallet);
       document.getElementById("sendButton").addEventListener("click", disperse);
+      
+      // Check if MetaMask or other provider is already connected
+      checkConnection();
     });
     
-    // Initialize Web3Modal
-    function initWeb3Modal() {
-      // Define providers options
-      const providerOptions = {
-        walletconnect: {
-          package: WalletConnectProvider,
-          options: {
-            rpc: {
-              [teaChainId]: "https://rpc.testnet.tea.xyz" // Tea Sepolia RPC
-            },
-            chainId: teaChainId,
-            network: "tea"
+    // Check if wallet is already connected
+    async function checkConnection() {
+      if (window.ethereum) {
+        try {
+          // Create Web3 instance
+          web3 = new Web3(window.ethereum);
+          
+          // Get accounts
+          const accounts = await web3.eth.getAccounts();
+          if (accounts.length > 0) {
+            // Get chain ID
+            const chainId = await web3.eth.getChainId();
+            
+            // Initialize and handle accounts
+            await initializeWeb3WithAccounts(accounts, chainId);
           }
+        } catch (error) {
+          console.log("No pre-existing connection found");
         }
-      };
-      
-      // Initialize web3modal
-      web3Modal = new Web3Modal.default({
-        cacheProvider: true, // optional
-        providerOptions, // required
-        disableInjectedProvider: false, // optional, allows MetaMask
-        theme: {
-          background: "#0E0D17",
-          main: "#FFFFFF",
-          secondary: "#B9C5E5",
-          border: "#1A1A2D",
-          hover: "#0A0711"
-        }
-      });
+      }
     }
     
     // Connect wallet function
     async function connectWallet() {
+      // Reset status
+      setStatus('', '');
+      
+      // Check if MetaMask is installed
+      if (!window.ethereum) {
+        setStatus('Please install MetaMask or another Web3 wallet', 'error');
+        return;
+      }
+      
       try {
-        // Reset status
-        setStatus('', '');
-        
-        // Open modal and get provider
-        provider = await web3Modal.connect();
+        // Request account access
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         
         // Create Web3 instance
-        web3 = new Web3(provider);
-        
-        // Subscribe to provider events
-        setupProviderEvents(provider);
+        web3 = new Web3(window.ethereum);
         
         // Get chain ID
         const chainId = await web3.eth.getChainId();
         
-        // Get accounts
-        const accounts = await web3.eth.getAccounts();
-        handleAccountsChanged(accounts);
+        // Initialize and handle accounts
+        await initializeWeb3WithAccounts(accounts, chainId);
         
-        // Check if we're on the right network
-        if (chainId !== teaChainId) {
-          setStatus(`Please connect to TEA Network (Chain ID: ${teaChainId})`, 'error');
-          
-          // Try to switch network (MetaMask only)
-          if (provider.isMetaMask) {
-            try {
-              await provider.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: `0x${teaChainId.toString(16)}` }]
-              });
-            } catch (switchError) {
-              // This error code indicates that the chain has not been added to MetaMask
-              if (switchError.code === 4902) {
-                try {
-                  await provider.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [{
-                      chainId: `0x${teaChainId.toString(16)}`,
-                      chainName: 'TEA Sepolia',
-                      nativeCurrency: {
-                        name: 'TEA',
-                        symbol: 'TEA',
-                        decimals: 18
-                      },
-                      rpcUrls: ['https://rpc.testnet.tea.xyz'],
-                      blockExplorerUrls: ['https://explorer.testnet.tea.xyz']
-                    }]
-                  });
-                } catch (addError) {
-                  console.error('Failed to add network:', addError);
-                }
-              }
-            }
-          }
-        } else {
-          // Initialize contract if we're on the right network
-          contract = new web3.eth.Contract(abi, contractAddress);
-          setStatus('Connected successfully!', 'success');
-        }
+        // Set up event listeners
+        setupProviderEvents();
+        
       } catch (error) {
         console.error("Connection error:", error);
         setStatus(`Connection failed: ${error.message}`, 'error');
       }
     }
     
+    // Initialize Web3 with accounts
+    async function initializeWeb3WithAccounts(accounts, chainId) {
+      // Handle accounts
+      handleAccountsChanged(accounts);
+      
+      // Check if we're on the right network
+      if (chainId !== teaChainId) {
+        setStatus(`Please switch to TEA Network (Chain ID: ${teaChainId})`, 'error');
+        
+        // Try to switch network
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: `0x${teaChainId.toString(16)}` }]
+          });
+        } catch (switchError) {
+          // This error code indicates that the chain has not been added to MetaMask
+          if (switchError.code === 4902) {
+            try {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: `0x${teaChainId.toString(16)}`,
+                  chainName: 'TEA Sepolia',
+                  nativeCurrency: {
+                    name: 'TEA',
+                    symbol: 'TEA',
+                    decimals: 18
+                  },
+                  rpcUrls: ['https://rpc.testnet.tea.xyz'],
+                  blockExplorerUrls: ['https://explorer.testnet.tea.xyz']
+                }]
+              });
+            } catch (addError) {
+              console.error('Failed to add network:', addError);
+            }
+          }
+        }
+      } else {
+        // Initialize contract if we're on the right network
+        contract = new web3.eth.Contract(abi, contractAddress);
+        setStatus('Connected successfully to TEA Network!', 'success');
+      }
+    }
+    
     // Setup provider events
-    function setupProviderEvents(provider) {
-      // Subscribe to accounts change
-      provider.on("accountsChanged", handleAccountsChanged);
-      
-      // Subscribe to chainId change
-      provider.on("chainChanged", (chainId) => {
-        console.log("Chain changed:", chainId);
-        window.location.reload();
-      });
-      
-      // Subscribe to provider connection
-      provider.on("connect", (info) => {
-        console.log("Provider connected:", info);
-      });
-      
-      // Subscribe to provider disconnection
-      provider.on("disconnect", (error) => {
-        console.log("Provider disconnected:", error);
-        handleDisconnect();
-      });
+    function setupProviderEvents() {
+      if (window.ethereum) {
+        // Subscribe to accounts change
+        window.ethereum.on("accountsChanged", handleAccountsChanged);
+        
+        // Subscribe to chainId change
+        window.ethereum.on("chainChanged", () => {
+          window.location.reload();
+        });
+        
+        // Subscribe to disconnect
+        window.ethereum.on("disconnect", () => {
+          handleDisconnect();
+        });
+      }
     }
     
     // Handle account changes
@@ -489,7 +532,7 @@
       
       // Update connect button
       const connectBtn = document.getElementById("connectButton");
-      connectBtn.textContent = `${userAccount.substring(0, 6)}...`;
+      connectBtn.innerHTML = `${userAccount.substring(0, 6)}...<span class="network-badge">TEA</span>`;
       connectBtn.className = "connected-btn";
       
       // Enable send button
@@ -498,14 +541,9 @@
     
     // Handle disconnection
     function handleDisconnect() {
-      if (web3Modal) {
-        web3Modal.clearCachedProvider();
-      }
-      
       userAccount = null;
       web3 = null;
       contract = null;
-      provider = null;
       
       // Update UI
       document.getElementById("walletAddress").textContent = "Not connected";
@@ -583,7 +621,7 @@
         const { addresses, amounts } = parseInputs();
         setStatus("Preparing transaction...", "pending");
         
-        // Convert ETH amounts to Wei
+        // Convert TEA amounts to Wei
         const amountsWei = amounts.map(amount => web3.utils.toWei(amount.toString(), "ether"));
         const totalWei = amountsWei.reduce((a, b) => BigInt(a) + BigInt(b), 0n);
         
