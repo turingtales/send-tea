@@ -64,17 +64,18 @@
     }
     
     .connect-btn {
-      background-color: transparent;
-      border: 1px solid var(--light-green);
+      background-color:  rgba(152, 255, 154, 0.1); /* Light green with opacity */;
+      border: none solid var(--light-green);
       color: var(--light-green);
       padding: 0.5rem 1rem;
       border-radius: 1rem;
+      font-weight: bold;
       cursor: pointer;
       transition: all 0.2s;
     }
     
     .connect-btn:hover {
-      background-color: rgba(152, 255, 153, 0.1); /* Light green with opacity */
+      background-color: rgba(152, 255, 153, 0.2); /* Light green with opacity */
       border-color: var(--light-green);
       color: var(--light-green);
     }
@@ -572,7 +573,7 @@
       document.getElementById("sendButton").disabled = true;
       
       const connectBtn = document.getElementById("connectButton");
-      connectBtn.textContent = "Connect Wallet";
+      connectBtn.textContent = "Connect";
       connectBtn.className = "connect-btn"; 
       
       document.getElementById("disconnectButton").classList.add("hidden");
