@@ -626,7 +626,7 @@
             spinner.classList.remove("hidden");
         } else {
             sendButton.disabled = false;
-            buttonText.textContent = "Disperse TEA"; 
+            buttonText.textContent = "Serve TEA"; 
             spinner.classList.add("hidden");
         }
     }
@@ -683,7 +683,7 @@
         statusElement.innerHTML = ''; // Clear previous content (like spinner)
         
         const successMessage = document.createElement('span');
-        successMessage.textContent = `Transaction sent! TX Hash: `;
+        successMessage.textContent = `TEA Served! TX Hash: `;
         statusElement.appendChild(successMessage);
 
         const txLink = document.createElement('a');
