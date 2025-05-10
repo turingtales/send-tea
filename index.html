@@ -400,13 +400,13 @@
     let web3;
     let userAccount;
     let contract;
-    const contractAddress = "0xD393a85Ae473a0a551F97631a093c427443f0C6c"; 
+    const contractAddress = "0x80FBcA03C8C56A313A90325e22e77e3c252669C4"; 
     const teaChainId = 10218; // Tea Sepolia chain ID
     const teaBlockExplorerTxUrl = "https://sepolia.tea.xyz/tx/"; 
 
     let statusClearTimer = null; 
     
-    const abi = [{"inputs":[{"internalType":"address[]","name":"recipients","type":"address[]"},{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"name":"disperseEther","outputs":[],"stateMutability":"payable","type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"totalAmount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"recipientCount","type":"uint256"}],"name":"EtherDispersed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"RefundSent","type":"event"}]; 
+    const abi = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"totalAmount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"recipientCount","type":"uint256"}],"name":"EtherDispersed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"RefundSent","type":"event"},{"inputs":[{"internalType":"address[]","name":"recipients","type":"address[]"},{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"name":"disperseEther","outputs":[],"stateMutability":"payable","type":"function"}]; 
     
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById("connectButton").addEventListener("click", connectWallet);
