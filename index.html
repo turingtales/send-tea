@@ -45,7 +45,7 @@
       align-items: center;
       justify-content: space-between;
       background-color: var(--bg-2);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      /* border-bottom: 1px solid rgba(255, 255, 255, 0.05); */
     }
     
     .logo {
@@ -108,7 +108,7 @@
       background-color: var(--bg-3);
       border-radius: 1rem;
       width: 100%;
-      max-width: 480px;
+      max-width: 480px; /* Adjusted max-width for better layout with new buttons */
       overflow: hidden;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
@@ -159,6 +159,8 @@
       margin-bottom: 0.5rem;
       color: var(--white);
       font-family: monospace;
+      white-space: pre-wrap; /* Allow wrapping for long address lists */
+      word-break: break-all; /* Break long strings (addresses) */
     }
     
     .card-body {
@@ -175,9 +177,26 @@
     .input-group-header {
       display: flex;
       justify-content: space-between;
+      align-items: center; /* Align items for new button */
       margin-bottom: 0.5rem;
       color: var(--periwinkle);
       font-size: 0.875rem;
+    }
+
+    .populate-btn {
+        background-color: #1a1a2d;
+        color: var(--periwinkle);
+        border: none;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .populate-btn:hover {
+        background-color: rgba(185, 197, 229, 0.6);
+        color: var(--bg-1);
     }
     
     textarea {
@@ -189,11 +208,45 @@
       resize: none;
       padding: 0.5rem;
       outline: none;
+      margin-top: 0.5rem; /* Add some space if header has button */
     }
     
     textarea::placeholder {
       color: var(--space-cadet);
     }
+
+    .amount-populate-section {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem; /* Space between input and button */
+        margin-top: 0.5rem; /* Space above this section */
+    }
+
+    .amount-populate-section input[type="number"] {
+        flex-grow: 0.2;
+        padding: 0.3rem 0.5rem;
+        border-radius: 0.5rem;
+        border: none;
+        background-color: var(--bg-1);
+        color: var(--white);
+        font-size: 0.875rem;
+        outline: none;
+        width: 80px; /* Give it some base width */
+    }
+    .amount-populate-section input[type="number"]::placeholder {
+        color: var(--space-cadet);
+    }
+
+    /* Hide number input spinners for a cleaner look */
+    .amount-populate-section input[type="number"]::-webkit-outer-spin-button,
+    .amount-populate-section input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .amount-populate-section input[type="number"] {
+        -moz-appearance: textfield; /* Firefox */
+    }
+
     
     .action-btn {
       width: 100%;
@@ -339,7 +392,7 @@
         <path d="M67.5539 128.018C67.5539 125.005 69.9957 122.564 73.0079 122.564H93.223C96.2352 122.564 98.6771 125.005 98.6771 128.018C98.6771 131.03 96.2352 133.472 93.223 133.472H73.0079C69.9957 133.472 67.5539 131.03 67.5539 128.018Z" fill="#98FF99"/>
         <path d="M140.198 70.3205V69.9474C140.198 66.9352 142.64 64.4934 145.652 64.4934C148.664 64.4934 151.106 66.9352 151.106 69.9474V70.3205C151.106 73.3327 148.664 75.7745 145.652 75.7745C142.64 75.7745 140.198 73.3327 140.198 70.3205Z" fill="#98FF99"/>
         <path d="M140.233 93.1433C140.549 90.1478 143.233 87.9754 146.229 88.2913C149.224 88.6071 151.397 91.2916 151.081 94.2872C150.453 100.244 148.823 105.764 147.394 109.731C146.673 111.731 145.988 113.377 145.478 114.535C145.191 115.185 144.569 116.488 144.569 116.488C143.201 119.148 139.941 120.213 137.265 118.864C134.576 117.51 133.493 114.232 134.846 111.543L134.848 111.539C135.075 111.077 135.289 110.607 135.497 110.135C135.922 109.169 136.51 107.76 137.132 106.033C138.389 102.545 139.729 97.926 140.233 93.1433Z" fill="#98FF99"/>
-    </svg>
+      </svg>
       <span>Serve TEA</span>
     </div>
     
@@ -352,6 +405,7 @@
         <div class="input-group">
           <div class="input-group-header">
             <span>Addresses</span>
+            <button id="populateAddressesBtn" class="populate-btn">Populate</button>
           </div>
           <textarea id="addresses" rows="4" placeholder="0xabc... 0xdef..."></textarea>
         </div>
@@ -361,6 +415,10 @@
             <span>Amounts</span>
           </div>
           <textarea id="amounts" rows="4" placeholder="0.01 0.02"></textarea>
+          <div class="amount-populate-section">
+            <input type="number" id="amountPerAddressInput" placeholder="Amount each" step="0.001" min="0">
+            <button id="populateAmountsBtn" class="populate-btn">Fill</button>
+          </div>
         </div>
         
         <button id="sendButton" class="action-btn" disabled>
@@ -378,8 +436,9 @@
           <h3>How to Serve TEA</h3>
           <ol>
             <li>Connect your wallet using the "Connect" button at the top.</li>
-            <li>Enter the recipient addresses in the "Addresses" field (one per line or space-separated).</li>
-            <li>Enter the corresponding TEA amounts in the "Amounts" field (one per line or space-separated).</li>
+            <li>Enter the recipient addresses in the "Addresses" field (one per line or space-separated). You can use the "Populate" button to use Example Addresses for a quick start.</li>
+            <li>Enter the corresponding TEA amounts in the "Amounts" field (one per line or space-separated).
+                Alternatively, enter an amount in the "Amount each" box and click "Fill" to automatically populate amounts for the entered addresses.</li>
             <li>Ensure each address has a corresponding amount in the same order.</li>
             <li>Click the "Serve TEA" button to send the specified amounts to each address in a single transaction.</li>
           </ol>
@@ -408,13 +467,55 @@
     
     const abi = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"totalAmount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"recipientCount","type":"uint256"}],"name":"EtherDispersed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"RefundSent","type":"event"},{"inputs":[{"internalType":"address[]","name":"recipients","type":"address[]"},{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"name":"disperseEther","outputs":[],"stateMutability":"payable","type":"function"}]; 
     
+    const exampleAddresses = [
+        "0x821632298f7Cc6BCe4645B0e9e7516eB4C0DFfA4",
+        "0x5A5280b61E0f7a505f31Be5699553Ed5CbF0c580",
+        "0x22ec97503f9Aa4bA17B4aa2A8ED36af96A943518",
+        "0xcC92ED9737077C793E400D3695333b5E5004ff43",
+        "0xfb31416067DfC665BCfAea381176320442D62022",
+        "0x4B6D8A0E5eEb55faFda0EBcC84aE1310CD918081",
+        "0x086005D0c6671A4F8815eB5285420f466ec3c8F7",
+        "0xD17fa0CEb444F9e5AF1fAc64d35d22bab0a26346",
+        "0x5ADb84601eAe00462E9ac7E62a17C9f03e3A5E08",
+        "0x4082564a6e43a2F8e1811F409fa79205a1328324"
+    ];
+
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById("connectButton").addEventListener("click", connectWallet);
       document.getElementById("sendButton").addEventListener("click", disperse);
       document.getElementById("disconnectButton").addEventListener("click", disconnectWallet);
+      document.getElementById("populateAddressesBtn").addEventListener("click", populateExampleAddresses);
+      document.getElementById("populateAmountsBtn").addEventListener("click", populateAmounts);
       checkConnection();
     });
     
+    function populateExampleAddresses() {
+        document.getElementById("addresses").value = exampleAddresses.join("\n");
+        setStatus('Example addresses populated.', 'success', true, 3000);
+    }
+
+    function populateAmounts() {
+        const amountPerAddressInput = document.getElementById("amountPerAddressInput");
+        const amountValue = parseFloat(amountPerAddressInput.value);
+        const addressesInput = document.getElementById("addresses").value.trim();
+        const addresses = addressesInput.split(/\s+/).filter(addr => addr !== '');
+
+        if (isNaN(amountValue) || amountValue <= 0) {
+            setStatus('Please enter a valid positive amount for each address.', 'error');
+            amountPerAddressInput.focus();
+            return;
+        }
+        if (addresses.length === 0) {
+            setStatus('Please enter some addresses first before populating amounts.', 'error');
+            document.getElementById("addresses").focus();
+            return;
+        }
+
+        const amountsArray = Array(addresses.length).fill(amountValue.toString());
+        document.getElementById("amounts").value = amountsArray.join(" ");
+        setStatus(`Amounts populated: ${amountValue} TEA for each of the ${addresses.length} addresses.`, 'success', true, 4000);
+    }
+
     async function checkConnection() {
       if (window.ethereum) {
         try {
@@ -592,7 +693,7 @@
       }
       statusElement.innerHTML = ''; 
       if (message) {
-        if (type === 'pending' && (message.toLowerCase().includes('preparing') || message.toLowerCase().includes('waiting'))) {
+        if (type === 'pending' && (message.toLowerCase().includes('preparing') || message.toLowerCase().includes('waiting') || message.toLowerCase().includes('sending'))) {
              const spinner = document.createElement('span');
              spinner.className = 'spinner';
              statusElement.appendChild(spinner);
@@ -702,6 +803,7 @@
 
         document.getElementById("addresses").value = ''; 
         document.getElementById("amounts").value = ''; 
+        document.getElementById("amountPerAddressInput").value = ''; // Clear the per-amount input too
         
       } catch (error) {
         console.error("Disperse error:", error); // Log the full error object
